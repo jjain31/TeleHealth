@@ -1,5 +1,6 @@
 import { createLogger, format, transports } from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
+import LokiTransport from 'winston-loki'
 
 const { combine, timestamp, printf, colorize, errors, json } = format
 
@@ -16,7 +17,17 @@ const fileRotateTransport = new DailyRotateFile({
     maxFiles: '14d', // keep logs for 14 days
     zippedArchive: true, //compresses old logs to save space.
 })
-
+const lokiTransport = new LokiTransport({
+    host: process.env.LOKI_HOST || 'http://localhost:3100',
+    labels: {
+        app: 'auth-user-service',
+        environment: process.env.NODE_ENV || 'development',
+    },
+    json: true,
+    format: json(),
+    replaceTimestamp: true,
+    onConnectionError: (err) => console.error('Loki connection error:', err),
+})
 const logger = createLogger({
     level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
     format: combine(
@@ -28,6 +39,7 @@ const logger = createLogger({
             format: combine(colorize(), consoleFormat),
         }),
         fileRotateTransport,
+        lokiTransport,
     ],
     exitOnError: false,
 })
