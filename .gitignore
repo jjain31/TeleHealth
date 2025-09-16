@@ -44,3 +44,10 @@ coverage/
 .Trashes
 ehthumbs.db
 Thumbs.db
+/src/generated/prisma
+
+# Prisma
+/src/generated/prisma
+node_modules/.prisma/
+prisma/migrations/
+.env
