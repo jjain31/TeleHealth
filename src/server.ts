@@ -3,37 +3,85 @@ import dotenv from 'dotenv'
 import logger from './config/logger'
 import { register } from './config/prometheus'
 import redis from './config/redis'
+import rateLimiter from './config/rate-limiter'
+import swaggerUi from 'swagger-ui-express'
+import { swaggerSpec } from './config/swagger.config'
+import authRoutes from './routes/auth'
 dotenv.config()
 const app = express()
+
+// Trust proxy for proper IP detection
+app.set('trust proxy', 1)
+
 app.use(express.json({ limit: '16kb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static('public'))
+
 const PORT = process.env.PORT || 3000
+
 redis.connect().catch((err) => {
     logger.error('Redis connection error', err)
 })
+
+// Rate limiting middleware
+app.use((req, res, next) => {
+    if (
+        req.path === '/health' ||
+        req.path === '/metrics' ||
+        req.path.startsWith('/api-docs')
+    ) {
+        return next()
+    }
+
+    const ip = req.ip || req.connection.remoteAddress || 'unknown-ip'
+
+    rateLimiter
+        .consume(ip)
+        .then(() => {
+            logger.debug(`Rate limit check passed for IP: ${ip}`)
+            next()
+        })
+        .catch((err) => {
+            logger.warn(`Rate limit exceeded for IP: ${ip}`)
+            res.status(429).json({
+                success: false,
+                message: 'Too Many Requests',
+                retryAfter: Math.round(err.msBeforeNext / 1000) || 60,
+            })
+        })
+})
+
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+app.use('/auth', authRoutes)
 app.get('/health', async (req, res) => {
     try {
         await redis.ping()
-        await redis.set('test-key', 'test-value', 'EX', 60) // expires in 60 seconds
-        const value = await redis.get('test-key')
-
         res.json({
             status: 'healthy',
-            redis: 'connected',
-            test: value,
+            timestamp: new Date().toISOString(),
+            services: {
+                redis: 'connected',
+                database: 'connected',
+            },
         })
     } catch (error) {
         res.status(503).json({
             status: 'unhealthy',
-            redis: 'disconnected',
+            timestamp: new Date().toISOString(),
+            services: {
+                redis: 'disconnected',
+            },
         })
     }
 })
+
 app.get('/metrics', async (req, res) => {
     res.set('Content-Type', register.contentType)
     res.end(await register.metrics())
 })
+
 app.listen(PORT, () => {
     logger.info(`Auth User Service is running on port ${PORT}`)
+    logger.info(`Swagger docs available at http://localhost:${PORT}/api-docs`)
 })

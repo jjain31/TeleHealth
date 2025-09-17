@@ -1,6 +1,11 @@
 import { Response } from 'express'
 
-const success = (res: Response, message = 'Success', data = null, status = 200) => {
+export const success = (
+    res: Response,
+    message = 'Success',
+    data = null,
+    status = 200,
+) => {
     return res.status(status).json({
         success: true,
         message,
