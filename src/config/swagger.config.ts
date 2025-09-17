@@ -33,45 +33,6 @@ const options = {
                     bearerFormat: 'JWT',
                 },
             },
-            schemas: {
-                Error: {
-                    type: 'object',
-                    properties: {
-                        success: {
-                            type: 'boolean',
-                            example: false,
-                        },
-                        message: {
-                            type: 'string',
-                        },
-                        errors: {
-                            type: 'array',
-                            items: {
-                                type: 'string',
-                            },
-                        },
-                    },
-                },
-                User: {
-                    type: 'object',
-                    properties: {
-                        id: {
-                            type: 'integer',
-                        },
-                        email: {
-                            type: 'string',
-                            format: 'email',
-                        },
-                        name: {
-                            type: 'string',
-                        },
-                        createdAt: {
-                            type: 'string',
-                            format: 'date-time',
-                        },
-                    },
-                },
-            },
         },
         security: [
             {
