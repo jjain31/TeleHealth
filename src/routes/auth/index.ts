@@ -1,5 +1,6 @@
 import express from 'express'
 import { authRateLimit } from '../../middleware/redis-limiter'
+import { registerHandler } from './handler'
 
 const router = express.Router()
 
@@ -27,10 +28,15 @@ const router = express.Router()
  *               password:
  *                 type: string
  *                 minLength: 8
- *                 example: "password123"
+ *                 example: "SecurePass123"
  *               name:
  *                 type: string
  *                 example: "John Doe"
+ *               role:
+ *                 type: string
+ *                 enum: [PATIENT, DOCTOR, ADMIN]
+ *                 default: PATIENT
+ *                 example: "PATIENT"
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -45,22 +51,101 @@ const router = express.Router()
  *                 message:
  *                   type: string
  *                   example: "User registered successfully"
- *                 user:
- *                   $ref: '#/components/schemas/User'
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                     refreshToken:
+ *                       type: string
+ *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 1
+ *                         email:
+ *                           type: string
+ *                           example: "user@example.com"
+ *                         name:
+ *                           type: string
+ *                           example: "John Doe"
+ *                         role:
+ *                           type: string
+ *                           example: "PATIENT"
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                 error:
+ *                   type: null
+ *                   example: null
  *       400:
- *         description: Invalid input
+ *         description: Validation failed
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed"
+ *                 data:
+ *                   type: null
+ *                   example: null
+ *                 error:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       field:
+ *                         type: string
+ *                       message:
+ *                         type: string
+ *       409:
+ *         description: User already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "User with this email already exists"
+ *                 data:
+ *                   type: null
+ *                   example: null
+ *                 error:
+ *                   type: null
+ *                   example: null
  *       429:
  *         description: Too many requests
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Too many authentication attempts. Please try again later."
+ *                 data:
+ *                   type: null
+ *                   example: null
+ *                 error:
+ *                   type: null
+ *                   example: null
  */
-router.post('/register', authRateLimit)
+router.post('/register', authRateLimit, registerHandler)
 
 /**
  * @swagger
@@ -117,6 +202,5 @@ router.post('/register', authRateLimit)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/login', authRateLimit)
 
 export default router
