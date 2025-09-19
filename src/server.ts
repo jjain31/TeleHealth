@@ -7,6 +7,7 @@ import rateLimiter from './config/rate-limiter'
 import swaggerUi from 'swagger-ui-express'
 import { swaggerSpec } from './config/swagger.config'
 import authRoutes from './routes/auth'
+import { error } from './utils/response'
 dotenv.config()
 const app = express()
 
@@ -43,11 +44,14 @@ app.use((req, res, next) => {
         })
         .catch((err) => {
             logger.warn(`Rate limit exceeded for IP: ${ip}`)
-            res.status(429).json({
-                success: false,
-                message: 'Too Many Requests',
-                retryAfter: Math.round(err.msBeforeNext / 1000) || 60,
-            })
+            return error(
+                res,
+                'Too Many Requests',
+                {
+                    retryAfter: Math.round(err.msBeforeNext / 1000) || 60,
+                },
+                429,
+            )
         })
 })
 

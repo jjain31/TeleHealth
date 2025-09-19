@@ -1,8 +1,14 @@
 node_modules
 npm-debug.log
+dist
 .git
 .gitignore
 README.md
 .env
-.nyc_output
+.env.example
+logs
+*.log
 coverage
+.nyc_output
+Dockerfile*
+docker-compose*.yml
