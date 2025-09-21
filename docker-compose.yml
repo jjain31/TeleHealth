@@ -4,7 +4,7 @@ services:
     auth-service:
         build:
             context: .
-            dockerfile: Dockerfile.dev # Use development Dockerfile
+            dockerfile: Dockerfile.dev
         ports:
             - '3000:3000'
         environment:
@@ -17,11 +17,23 @@ services:
         volumes:
             - .:/app # Mount source code for hot reload
             - /app/node_modules # Exclude node_modules from mount
+            - ./logs:/app/logs # Mount logs directory
         depends_on:
-            - postgres
-            - redis
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_started
         networks:
             - telehealth-network
+        # Add these for better development experience
+        stdin_open: true
+        tty: true
+        # Remove deploy limits for development (can add back for production)
+        # deploy:
+        #     resources:
+        #         limits:
+        #             cpus: '2'
+        #             memory: 1G
 
     postgres:
         image: postgres:15-alpine
@@ -29,12 +41,47 @@ services:
             - POSTGRES_USER=postgres
             - POSTGRES_PASSWORD=password
             - POSTGRES_DB=telehealth_auth
+            - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
         ports:
             - '5432:5432'
         volumes:
             - postgres-data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U postgres -d telehealth_auth']
+            interval: 5s
+            timeout: 5s
+            retries: 5
+            start_period: 30s
         networks:
             - telehealth-network
+        deploy:
+            resources:
+                limits:
+                    cpus: '1'
+                    memory: 512M
+
+    redis:
+        image: redis:7-alpine
+        ports:
+            - '6379:6379'
+        volumes:
+            - redis-data:/data
+        command: >
+            redis-server
+            --appendonly yes
+            --maxmemory 256mb
+            --maxmemory-policy allkeys-lru
+            --tcp-keepalive 60
+            --timeout 30
+        networks:
+            - telehealth-network
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 5s
+            timeout: 3s
+            retries: 3
+
+    # Add pgAdmin for database management
     pgadmin:
         image: dpage/pgadmin4:latest
         container_name: pgadmin4
@@ -48,15 +95,6 @@ services:
             - pgadmin-data:/var/lib/pgadmin
         depends_on:
             - postgres
-        networks:
-            - telehealth-network
-    redis:
-        image: redis:7-alpine
-        ports:
-            - '6379:6379'
-        volumes:
-            - redis-data:/data
-        command: redis-server --appendonly yes
         networks:
             - telehealth-network
 

@@ -34,10 +34,10 @@ app.use((req, res, next) => {
         return next()
     }
 
-    const ip = req.ip || req.connection.remoteAddress || 'unknown-ip'
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress
 
     rateLimiter
-        .consume(ip)
+        .consume(ip as string, 1)
         .then(() => {
             logger.debug(`Rate limit check passed for IP: ${ip}`)
             next()
