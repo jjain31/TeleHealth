@@ -174,3 +174,47 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
         return error(res, 'Internal server error', null, 500)
     }
 }
+export const logoutHandler = async (req: Request, res: Response) => {
+    try {
+        const validationResult = refreshTokenSchema.safeParse(req.body)
+
+        if (!validationResult.success) {
+            const errors = validationResult.error.issues.map((err) => ({
+                field: err.path.join('.'),
+                message: err.message,
+            }))
+            return error(res, 'Validation failed', errors, 400)
+        }
+        const { refreshToken } = validationResult.data
+        let payload
+        try {
+            payload = verifyRefreshToken(refreshToken)
+        } catch (err: any) {
+            logger.warn('Invalid refresh token provided during logout', {
+                ip: req.ip,
+                userAgent: req.get('User-Agent'),
+            })
+            return error(res, 'Invalid or expired refresh token', null, 401)
+        }
+        const refreshTokenKey = `refresh_token:${payload.userId}`
+        const storedToken = await redis.get(refreshTokenKey)
+        if (!storedToken || storedToken !== refreshToken) {
+            logger.warn('Refresh token not found or does not match during logout', {
+                userId: payload.userId,
+                ip: req.ip,
+                userAgent: req.get('User-Agent'),
+            })
+            return error(res, 'Invalid or expired refresh token', null, 401)
+        }
+        await redis.del(refreshTokenKey)
+        logger.info('User logged out successfully', {
+            userId: payload.userId,
+            ip: req.ip,
+            userAgent: req.get('User-Agent'),
+        })
+        return success(res, 'User logged out successfully', null)
+    } catch (err: any) {
+        logger.error('Logout error:', err)
+        return error(res, 'Internal server error', null, 500)
+    }
+}

@@ -1,6 +1,11 @@
 import express from 'express'
 import { authRateLimit, generalRateLimit } from '../../middleware/redis-limiter'
-import { loginHandler, refreshTokenHandler, registerHandler } from './handler'
+import {
+    loginHandler,
+    logoutHandler,
+    refreshTokenHandler,
+    registerHandler,
+} from './handler'
 
 const router = express.Router()
 
@@ -225,7 +230,7 @@ router.post('/login', loginHandler)
 /**
  * @swagger
  * /auth/refresh-token:
- *   get:
+ *   post:
  *     summary: Refresh access token
  *     tags: [Authentication]
  *     requestBody:
@@ -276,5 +281,57 @@ router.post('/login', loginHandler)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/refresh-token', refreshTokenHandler)
+router.post('/refresh-token', refreshTokenHandler)
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *     responses:
+ *       200:
+ *         description: User logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User logged out successfully"
+ *                 data:
+ *                   type: null
+ *                   example: null
+ *                 error:
+ *                   type: null
+ *                   example: null
+ *       401:
+ *         description: Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/logout', logoutHandler)
 export default router
