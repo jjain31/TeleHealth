@@ -1,6 +1,6 @@
 import express from 'express'
-import { authRateLimit } from '../../middleware/redis-limiter'
-import { registerHandler } from './handler'
+import { authRateLimit, generalRateLimit } from '../../middleware/redis-limiter'
+import { loginHandler, refreshTokenHandler, registerHandler } from './handler'
 
 const router = express.Router()
 
@@ -75,9 +75,6 @@ const router = express.Router()
  *                         role:
  *                           type: string
  *                           example: "PATIENT"
- *                         createdAt:
- *                           type: string
- *                           format: date-time
  *                 error:
  *                   type: null
  *                   example: null
@@ -172,7 +169,7 @@ router.post('/register', authRateLimit, registerHandler)
  *                 example: "password123"
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: User registered successfully
  *         content:
  *           application/json:
  *             schema:
@@ -183,12 +180,34 @@ router.post('/register', authRateLimit, registerHandler)
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Login successful"
- *                 token:
- *                   type: string
- *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
- *                 user:
- *                   $ref: '#/components/schemas/User'
+ *                   example: "User registered successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                     refreshToken:
+ *                       type: string
+ *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 1
+ *                         email:
+ *                           type: string
+ *                           example: "user@example.com"
+ *                         name:
+ *                           type: string
+ *                           example: "John Doe"
+ *                         role:
+ *                           type: string
+ *                           example: "PATIENT"
+ *                 error:
+ *                   type: null
+ *                   example: null
  *       401:
  *         description: Invalid credentials
  *         content:
@@ -202,5 +221,60 @@ router.post('/register', authRateLimit, registerHandler)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-
+router.post('/login', loginHandler)
+/**
+ * @swagger
+ * /auth/refresh-token:
+ *   get:
+ *     summary: Refresh access token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *     responses:
+ *       200:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User registered successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 error:
+ *                   type: null
+ *                   example: null
+ *       401:
+ *         description: Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/refresh-token', refreshTokenHandler)
 export default router

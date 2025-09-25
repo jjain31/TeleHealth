@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { stat } from 'fs'
 
 export const success = (res: Response, message = 'Success', data?: any, status = 200) => {
     return res.status(status).json({
@@ -6,6 +7,7 @@ export const success = (res: Response, message = 'Success', data?: any, status =
         message,
         data,
         error: null,
+        status,
     })
 }
 
@@ -15,6 +17,7 @@ export const error = (res: Response, message = 'Error', error?: any, status = 50
         message,
         data: null,
         error,
+        status,
     })
 }
 

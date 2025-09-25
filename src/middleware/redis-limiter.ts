@@ -35,7 +35,7 @@ export const authRateLimit = async (req: Request, res: Response, next: NextFunct
         }
 
         logger.error('Rate limiter error:', err)
-        return next() // Continue on rate limiter errors
+        return next()
     }
 }
 
