@@ -1,5 +1,5 @@
 import express from 'express'
-import dotenv from 'dotenv'
+import dotenv, { config } from 'dotenv'
 import logger from './config/logger'
 import { register } from './config/prometheus'
 import redis from './config/redis'
@@ -7,7 +7,10 @@ import rateLimiter from './config/rate-limiter'
 import swaggerUi from 'swagger-ui-express'
 import { swaggerSpec } from './config/swagger.config'
 import authRoutes from './routes/auth'
+import oauthRoutes from './routes/oauth'
 import { error } from './utils/response'
+import passport from 'passport'
+import configurePassport from './config/passport'
 dotenv.config()
 const app = express()
 
@@ -17,7 +20,8 @@ app.set('trust proxy', 1)
 app.use(express.json({ limit: '16kb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static('public'))
-
+app.use(passport.initialize())
+configurePassport()
 const PORT = process.env.PORT || 3000
 
 redis.connect().catch((err) => {
@@ -58,6 +62,7 @@ app.use((req, res, next) => {
 // Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use('/auth', authRoutes)
+app.use('/oauth', oauthRoutes)
 app.get('/health', async (req, res) => {
     try {
         await redis.ping()
