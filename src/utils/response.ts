@@ -11,7 +11,7 @@ export const success = (res: Response, message = 'Success', data?: any, status =
     })
 }
 
-export const error = (res: Response, message = 'Error', error?: any, status = 500) => {
+export const errors = (res: Response, message = 'Error', error?: any, status = 500) => {
     return res.status(status).json({
         success: false,
         message,
@@ -21,4 +21,4 @@ export const error = (res: Response, message = 'Error', error?: any, status = 50
     })
 }
 
-module.exports = { success, error }
+module.exports = { success, errors }

@@ -8,6 +8,7 @@ import swaggerUi from 'swagger-ui-express'
 import { swaggerSpec } from './config/swagger.config'
 import authRoutes from './routes/auth'
 import oauthRoutes from './routes/oauth'
+import userProfileRoutes from './routes/user-profile'
 import { error } from './utils/response'
 import passport from 'passport'
 import configurePassport from './config/passport'
@@ -63,6 +64,7 @@ app.use((req, res, next) => {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use('/auth', authRoutes)
 app.use('/oauth', oauthRoutes)
+app.use('/user', userProfileRoutes)
 app.get('/health', async (req, res) => {
     try {
         await redis.ping()

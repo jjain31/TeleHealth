@@ -1,7 +1,6 @@
 import prisma from '../../config/prisma'
 import bcrypt from 'bcryptjs'
 import logger from '../../config/logger'
-import { error } from '../../utils/response'
 
 export interface CreateUserData {
     email: string
@@ -13,8 +12,14 @@ export interface UserResponse {
     id: number
     email: string
     name: string
-    createdAt: Date
     role: string
+}
+export interface UserDetails {
+    id: number
+    email: string
+    name: string
+    googleId?: string
+    avatar?: string
 }
 export class UserService {
     static async createUser(userData: CreateUserData): Promise<UserResponse> {
@@ -44,7 +49,6 @@ export class UserService {
                     email: true,
                     name: true,
                     role: true,
-                    createdAt: true,
                 },
             })
 
@@ -71,13 +75,17 @@ export class UserService {
                     id: true,
                     email: true,
                     name: true,
-                    createdAt: true,
                     role: true,
                     password: true,
                 },
             })
             if (!user) {
                 throw new Error('User not found')
+            }
+            if (!user.password) {
+                throw new Error(
+                    'User password not set. You may have logged in through OAuth.',
+                )
             }
             const isPasswordValid = await bcrypt.compare(password, user.password)
             if (!isPasswordValid) {
@@ -87,6 +95,71 @@ export class UserService {
         } catch (err: any) {
             logger.error('Error fetching user by email:', err)
             throw err
+        }
+    }
+    static async getUserById(id: number): Promise<UserDetails> {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: id },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    googleId: true,
+                    avatar: true,
+                },
+            })
+            if (!user) {
+                throw new Error('User not found')
+            }
+            return {
+                ...user,
+                googleId: user.googleId ?? undefined,
+                avatar: user.avatar ?? undefined,
+            }
+        } catch (error: any) {
+            logger.error('Error fetching user by ID:', error)
+            throw error
+        }
+    }
+    static async getUserByEmail(email: string): Promise<string | null> {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { email: email.toLowerCase() },
+                select: {
+                    id: true,
+                },
+            })
+            return user ? user.id.toString() : null
+        } catch (error: any) {
+            logger.error('Error fetching user by email:', error)
+            throw error
+        }
+    }
+    static async updateUserProfile(
+        userId: number,
+        data: Partial<UserDetails>,
+    ): Promise<UserDetails> {
+        try {
+            const user = await prisma.user.update({
+                where: { id: userId },
+                data,
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    googleId: true,
+                    avatar: true,
+                },
+            })
+            return {
+                ...user,
+                googleId: user.googleId ?? undefined,
+                avatar: user.avatar ?? undefined,
+            }
+        } catch (error: any) {
+            logger.error('Error updating user profile:', error)
+            throw error
         }
     }
 }

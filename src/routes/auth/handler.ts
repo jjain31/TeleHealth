@@ -6,7 +6,7 @@ import {
     generateRefreshToken,
     verifyRefreshToken,
 } from '../../utils/jwt'
-import { success, error } from '../../utils/response'
+import { success, errors } from '../../utils/response'
 import logger from '../../config/logger'
 import redis from '../../config/redis'
 
@@ -16,12 +16,12 @@ export const registerHandler = async (req: Request, res: Response) => {
         const validationResult = registerSchema.safeParse(req.body)
 
         if (!validationResult.success) {
-            const errors = validationResult.error.issues.map((err) => ({
+            const error = validationResult.error.issues.map((err) => ({
                 field: err.path.join('.'),
                 message: err.message,
             }))
 
-            return error(res, 'Validation failed', errors, 400)
+            return errors(res, 'Validation failed', error, 400)
         }
 
         const userData = validationResult.data
@@ -67,11 +67,11 @@ export const registerHandler = async (req: Request, res: Response) => {
         )
     } catch (err: any) {
         if (err.message === 'User with this email already exists') {
-            return error(res, 'User with this email already exists', null, 409)
+            return errors(res, 'User with this email already exists', null, 409)
         }
 
         logger.error('Registration error:', err)
-        return error(res, 'Internal server error', null, 500)
+        return errors(res, 'Internal server error', null, 500)
     }
 }
 export const loginHandler = async (req: Request, res: Response) => {
@@ -80,11 +80,11 @@ export const loginHandler = async (req: Request, res: Response) => {
         const validationResult = loginSchema.safeParse(req.body)
         console.log(validationResult)
         if (!validationResult.success) {
-            const errors = validationResult.error.issues.map((err) => ({
+            const error = validationResult.error.issues.map((err) => ({
                 field: err.path.join('.'),
                 message: err.message,
             }))
-            return error(res, 'Validataion failed', errors, 400)
+            return errors(res, 'Validation failed', error, 400)
         }
         const data = validationResult.data
         const user = await UserService.getUserByEmailAndPassword(
@@ -120,9 +120,9 @@ export const loginHandler = async (req: Request, res: Response) => {
         })
     } catch (err: any) {
         if (err.message === 'User not found' || err.message === 'Invalid password') {
-            return error(res, 'Invalid email or password', null, 401)
+            return errors(res, 'Invalid email or password', null, 401)
         }
-        return error(res, 'Internal server error', null, 500)
+        return errors(res, 'Internal server error', null, 500)
     }
 }
 export const refreshTokenHandler = async (req: Request, res: Response) => {
@@ -130,11 +130,11 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
         const validationResult = refreshTokenSchema.safeParse(req.body)
 
         if (!validationResult.success) {
-            const errors = validationResult.error.issues.map((err) => ({
+            const error = validationResult.error.issues.map((err) => ({
                 field: err.path.join('.'),
                 message: err.message,
             }))
-            return error(res, 'Validation failed', errors, 400)
+            return errors(res, 'Validation failed', error, 400)
         }
 
         const { refreshToken } = validationResult.data
@@ -146,7 +146,7 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
                 ip: req.ip,
                 userAgent: req.get('User-Agent'),
             })
-            return error(res, 'Invalid or expired refresh token', null, 401)
+            return errors(res, 'Invalid or expired refresh token', null, 401)
         }
         const refreshTokenKey = `refresh_token:${payload.userId}`
         const storedToken = await redis.get(refreshTokenKey)
@@ -156,7 +156,7 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
                 ip: req.ip,
                 userAgent: req.get('User-Agent'),
             })
-            return error(res, 'Invalid or expired refresh token', null, 401)
+            return errors(res, 'Invalid or expired refresh token', null, 401)
         }
         const accessToken = generateAccessToken({
             userId: payload.userId,
@@ -171,7 +171,7 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
         return success(res, 'Access token refreshed successfully', { accessToken })
     } catch (err: any) {
         logger.error('Refresh token error:', err)
-        return error(res, 'Internal server error', null, 500)
+        return errors(res, 'Internal server error', null, 500)
     }
 }
 export const logoutHandler = async (req: Request, res: Response) => {
@@ -179,11 +179,11 @@ export const logoutHandler = async (req: Request, res: Response) => {
         const validationResult = refreshTokenSchema.safeParse(req.body)
 
         if (!validationResult.success) {
-            const errors = validationResult.error.issues.map((err) => ({
+            const error = validationResult.error.issues.map((err) => ({
                 field: err.path.join('.'),
                 message: err.message,
             }))
-            return error(res, 'Validation failed', errors, 400)
+            return errors(res, 'Validation failed', error, 400)
         }
         const { refreshToken } = validationResult.data
         let payload
@@ -194,7 +194,7 @@ export const logoutHandler = async (req: Request, res: Response) => {
                 ip: req.ip,
                 userAgent: req.get('User-Agent'),
             })
-            return error(res, 'Invalid or expired refresh token', null, 401)
+            return errors(res, 'Invalid or expired refresh token', null, 401)
         }
         const refreshTokenKey = `refresh_token:${payload.userId}`
         const storedToken = await redis.get(refreshTokenKey)
@@ -204,7 +204,7 @@ export const logoutHandler = async (req: Request, res: Response) => {
                 ip: req.ip,
                 userAgent: req.get('User-Agent'),
             })
-            return error(res, 'Invalid or expired refresh token', null, 401)
+            return errors(res, 'Invalid or expired refresh token', null, 401)
         }
         await redis.del(refreshTokenKey)
         logger.info('User logged out successfully', {
@@ -215,6 +215,6 @@ export const logoutHandler = async (req: Request, res: Response) => {
         return success(res, 'User logged out successfully', null)
     } catch (err: any) {
         logger.error('Logout error:', err)
-        return error(res, 'Internal server error', null, 500)
+        return errors(res, 'Internal server error', null, 500)
     }
 }
