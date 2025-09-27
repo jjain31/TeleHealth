@@ -6,9 +6,9 @@ export default function configurePassport() {
     passport.use(
         new GoogleStrategy(
             {
-                clientID: process.env.GOOGLE_CLIENT_ID as string,
-                clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-                callbackURL: process.env.GOOGLE_CALLBACK_URL as string,
+                clientID: process.env.GOOGLE_CLIENT_ID! as string,
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET! as string,
+                callbackURL: process.env.GOOGLE_CALLBACK_URL! as string,
             },
             async (
                 accessToken: string,
@@ -19,6 +19,13 @@ export default function configurePassport() {
                 try {
                     let user = await prisma.user.findUnique({
                         where: { googleId: profile.id },
+                        select: {
+                            id: true,
+                            email: true,
+                            name: true,
+                            role: true,
+                            googleId: true,
+                        },
                     })
 
                     if (!user) {
@@ -32,8 +39,8 @@ export default function configurePassport() {
                         user = await prisma.user.create({
                             data: {
                                 googleId: profile.id,
-                                email: email,
-                                name: profile.displayName || 'No Name',
+                                email: email.toLowerCase(),
+                                name: profile.displayName.toLowerCase() || 'No Name',
                                 avatar: profile.photos?.[0].value,
                             },
                         })

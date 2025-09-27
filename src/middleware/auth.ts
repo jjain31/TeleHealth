@@ -6,7 +6,7 @@ import { JwtPayload, verifyAccessToken } from '@/utils/jwt'
 declare global {
     namespace Express {
         interface Request {
-            user?: JwtPayload
+            jwtUser?: JwtPayload
         }
     }
 }
@@ -20,7 +20,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
             return error(res, 'Access token is missing', null, 401)
         }
         const decoded = verifyAccessToken(token)
-        req.user = decoded
+        req.jwtUser = decoded
         logger.debug('Token verified successfully', {
             userId: decoded.userId,
             email: decoded.email,
